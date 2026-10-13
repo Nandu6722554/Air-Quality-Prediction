@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIR QUALITY PREDICTION</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.cdnfonts.com/css/mauline" rel="stylesheet">
+  
+  <link rel="stylesheet" href="index.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="//unpkg.com/globe.gl" defer></script>
+</head>
+<body>
+
+  <!-- ─── LOADING OVERLAY ─── -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loader-rings">
+      <div class="loader-ring"></div>
+      <div class="loader-ring"></div>
+      <div class="loader-ring"></div>
+    </div>
+    <p class="loading-text">Fetching air quality data…</p>
+  </div>
+
+  <!-- ─── TOAST ─── -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ─── NAV ─── -->
+  <nav role="navigation" aria-label="Main navigation">
+    <a href="#" class="nav-logo">
+      <span class="mauline-font">Air Quality</span> Prediction
+    </a>
+    <ul class="nav-links">
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#charts">Analytics</a></li>
+      <li><a href="#forecast">Forecast</a></li>
+      <li><a href="#advisory">Health</a></li>
+      <li><a href="#cities" class="nav-cta">Explore Cities</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─── LIVE TICKER (Reinforced) ─── -->
+  <div class="live-ticker">
+    <div class="ticker-label-box">
+      <span class="ticker-label">LIVE UPDATES</span>
+      <span class="pulse-dot-green"></span>
+    </div>
+    <div class="ticker-view">
+      <div class="ticker-track" id="liveTicker"></div>
+    </div>
+  </div>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <main>
+    <!-- ─── HERO SECTION ─── -->
+    <section class="hero" id="home">
+      <div class="hero-container">
+        <!-- Left: Title -->
+        <div class="hero-left">
+          <div class="hero-badge">
+            <span class="pulse-dot"></span>
+            Live Air Quality Monitoring
+          </div>
+          <h1>
+            Air Quality<span class="prediction-word">Prediction</span>
+          </h1>
+          <p>Explore real-time atmospheric data and AI-driven pollutant forecasts across 30+ major Indian cities on an interactive global landscape.</p>
+          <div class="api-status-badge">
+            <span class="active-dot"></span>
+            Real-time OpenWeather API Active
+          </div>
+        </div>
+
+        <!-- Right Modules: Globe & Search -->
+        <div class="hero-right">
+          <!-- 3D Globe Card -->
+          <div class="hero-module-card globe-container-card">
+             <div id="heroGlobe" class="mini-globe"></div>
+          </div>
+
+          <!-- Search & Statistics Card -->
+          <div class="hero-module-card search-container-card">
+            <div class="search-box">
+              <input type="text" id="citySearch" placeholder="Search City (e.g., Delhi, Mumbai)..." autocomplete="off">
+              <button id="filterBtn" title="Filter Options" style="background:none;border:none;cursor:pointer;padding:8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              </button>
+              <button id="searchBtn">Search</button>
+              <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+              
+              <div id="filterDropdown" class="filter-dropdown" style="display:none; position:absolute; top:100%; right:0; background:var(--bg-card); padding:16px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.1); border:1px solid var(--border); z-index:100; min-width:200px; margin-top:8px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:block;">SORT BY:</label>
+                <select id="sortSelect" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); outline:none;">
+                  <option value="aqiDesc">Pollution Level (High to Low)</option>
+                  <option value="aqiAsc">Pollution Level (Low to High)</option>
+                  <option value="nameAsc">Name (A-Z)</option>
+                  <option value="nameDesc">Name (Z-A)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="stats-strip">
+              <div class="stat-item">
+                <span class="stat-value" id="statCities">0</span>
+                <span class="stat-label">Cities Live</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statSensors">0</span>
+                <span class="stat-label">Active Points</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statUpdated">—</span>
+                <span class="stat-label">Last Update</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ─── DASHBOARD ─── -->
+    <section id="dashboard" class="section">
+      <div class="section-header">
+        <h2>Live <span class="mauline-font">AQI</span> Dashboard</h2>
+        <p>Real-time air quality data with pollutant breakdown and trend analysis.</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Dashboard Left: Summary Card -->
+        <div class="dashboard-left glass-card">
+          <div class="dashboard-header-main" style="text-align: center; margin-bottom: 24px;">
+            <h2 id="dashCityName">—</h2>
+            <div class="aqi-timestamp" id="dashStateAQI"
+              style="color:var(--text-muted);font-size:0.82rem;margin-bottom:4px"></div>
+          </div>
+
+          <img id="dashCityImg" src="" alt="" class="city-card-img" style="display: none;" />
+
+          <div class="aqi-timestamp" id="dashTime"></div>
+
+          <div class="aqi-meter-wrap" aria-label="AQI Progress">
+            <div class="aqi-value-display">
+              <span id="gaugeValue">—</span>
+              <small>AQI Index</small>
+            </div>
+            <div class="aqi-bar-bg">
+              <div id="gaugeFill" class="aqi-bar-fill"></div>
+            </div>
+          </div>
+
+          <div class="aqi-category-badge" id="aqiBadge">—</div>
+
+          <div class="aqi-meta">
+            <div class="aqi-meta-item">
+              <div class="meta-label">Wind</div>
+              <div class="meta-value" id="metaWind">—</div>
+            </div>
+            <div class="aqi-meta-item">
+              <div class="meta-label">Humidity</div>
+              <div class="meta-value" id="metaHumid">—</div>
+            </div>
+            <div class="aqi-meta-item">
+              <div class="meta-label">Temp</div>
+              <div class="meta-value" id="metaTemp">—</div>
+            </div>
+            <div class="aqi-meta-item">
+              <div class="meta-label">Visibility</div>
+              <div class="meta-value" id="metaVis">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Right: Grid Column -->
+        <div class="dashboard-right">
+          <div id="pollutantsGrid" class="pollutants-grid"></div>
+
+          <div class="glass-card chart-card">
+            <div class="chart-card-header">
+              <h3>24-Hour <span class="mauline-font">AQI</span> Trend</h3>
+              <span style="font-size:0.75rem;color:var(--text-muted)">Hourly readings</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="hourlyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ─── CHARTS ─── -->
+    <section id="charts" aria-label="Analytics Charts">
+      <div class="section">
+        <div class="section-header">
+          <h2>Air Quality Analytics</h2>
+          <p>Advanced real-time statistical modeling with smooth rendering animations.</p>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px;">
+          <div class="glass-card chart-card-lg">
+            <div class="chart-card-header">
+              <h3>City AQI Ranking</h3>
+            </div>
+            <div id="apexBarChart" style="height:340px;"></div>
+          </div>
+          <div class="glass-card chart-card-lg">
+            <div class="chart-card-header">
+              <h3>Pollutant Composition</h3>
+            </div>
+            <div id="apexPieChart" style="height:340px;"></div>
+          </div>
+          <div class="glass-card chart-card-lg" style="margin-top:24px;">
+            <div class="chart-card-header">
+              <h3>Pollutant Fingerprint (Radar)</h3>
+            </div>
+            <div id="apexRadarChart" style="height:340px;"></div>
+          </div>
+          <div class="glass-card chart-card-lg" style="margin-top:24px;">
+            <div class="chart-card-header">
+              <h3>India Regional Heatmap</h3>
+            </div>
+            <div id="apexHeatmapChart" style="height:340px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ─── FORECAST ─── -->
+    <section id="forecast" aria-label="7-Day Forecast">
+      <div class="section">
+        <div class="section-header">
+          <h2>7-Day <span class="mauline-font">AQI</span> Forecast</h2>
+          <p>Predicted air quality trend based on meteorological patterns.</p>
+        </div>
+        <div class="forecast-strip" id="forecastStrip"></div>
+
+        <div class="aqi-legend" aria-label="AQI color legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#00e676"></div>Good</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#aeea00"></div>Satisfactory</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ffea00"></div>Moderate</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff9100"></div>Poor</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff3d00"></div>Very Poor</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#b71c1c"></div>Severe</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── INTEGRATED INSIGHTS ─── -->
+    <section id="advisory" aria-label="Insights & Actions">
+      <div class="section">
+        <div class="section-header">
+          <h2>Insights & Actions</h2>
+          <p>Health recommendations and real-time updates regarding Indian pollution control.</p>
+        </div>
+        <div class="insights-grid">
+          <div class="insights-left">
+            <div class="safety-photo-wrapper">
+               <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=800&auto=format&fit=crop" class="safety-photo" alt="UN Safety Recommendations">
+               <div class="safety-photo-overlay">
+                  <h3>Global Clean Air Initiative</h3>
+                  <p>UN-backed safety directives to mitigate exposure and improve health.</p>
+               </div>
+            </div>
+          </div>
+          <div class="insights-right">
+            <div class="news-feed" id="newsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- ─── TOP CITIES ─── -->
+    <section id="cities" class="section section-cities">
+      <div class="section-header">
+        <h2>National Overview</h2>
+        <p>Atmospheric status across 30+ major Indian cities.</p>
+      </div>
+      <div class="cities-grid" id="citiesGrid"></div>
+    </section>
+
+  </main>
+
+  
+
+  <footer>
+    <div class="footer-logo"><span class="mauline-font">Air Quality</span> Prediction</div>
+    <div class="footer-links">
+      <a href="#home">Back to Top</a>
+      <a href="https://github.com">Documentation</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="app.js"></script>
+</body>
+</html>

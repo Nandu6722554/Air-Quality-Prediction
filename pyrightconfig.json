@@ -1,0 +1,10 @@
+{
+    "pythonVersion": "3.10",
+    "venvPath": ".",
+    "exclude": [
+        "**/__pycache__"
+    ],
+    "reportMissingImports": false,
+    "reportMissingModuleSource": false,
+    "typeCheckingMode": "basic"
+}
